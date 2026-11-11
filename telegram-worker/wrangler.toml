@@ -4,7 +4,7 @@ compatibility_date = "2026-11-11"
 
 [vars]
 # Only the origin, without repository path or trailing slash.
-ALLOWED_ORIGIN = "https://YOUR_ACCOUNT.github.io"
+ALLOWED_ORIGIN = "https://oleksandr-bakhurinskiy.github.io/"
 
 [[durable_objects.bindings]]
 name = "SUPPORT"
