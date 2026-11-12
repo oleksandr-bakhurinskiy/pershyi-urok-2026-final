@@ -500,7 +500,7 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
   for(const [value,label] of [['event','Моменти конкурсу'],['portraits','Фіналісти']]){const b=document.createElement('button');b.type='button';b.className='pu-tab';b.dataset.album=value;b.textContent=label;b.addEventListener('click',()=>{album=value;renderAlbum();});tabs.append(b);}
   const liveStatus=document.createElement('span');liveStatus.className='pu-live-status';tabs.append(liveStatus);portraitGrid.before(tabs);
   const live=document.createElement('div');live.className='pu-live-container';
-  const empty=document.createElement('div');empty.className='pu-empty-photos';empty.innerHTML='<strong>Тут з’являться<br>моменти конкурсу5</strong><p>Нові кадри додаватимуться до фотострічки під час події.</p>';
+  const empty=document.createElement('div');empty.className='pu-empty-photos';empty.innerHTML='<strong>Тут з’являться<br>моменти конкурсу6</strong><p>Нові кадри додаватимуться до фотострічки під час події.</p>';
   const grid=document.createElement('div');grid.className='pu-live-grid';
   const pager=document.createElement('div');pager.className='pu-live-pager';
   const previous=document.createElement('button'),next=document.createElement('button'),pageLabel=document.createElement('span');
@@ -689,34 +689,110 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     const res = await fetch("https://pershyi-urok-support.obakhurinskyi.workers.dev/api/photos");
-    const urls = await res.json();
+    const photos = await res.json(); // Отримуємо {url, name}
     
-    // Шукаємо сітку за атрибутом data-photo-grid, який ви точно не видаляли
-    const photoGrid = document.querySelector('[data-photo-grid]');
+    // 1. РОЗПОДІЛ ФОТОГРАФІЙ ЗА НАЗВАМИ
+    const idMap = { 
+      'водоп’ян': 'vodopian', 'денисюк': 'denysiuk', 'кишкіна': 'kyshkina', 
+      'копичинський': 'kopychynskyi', 'нагірняк': 'nahirniak', 'поспелова': 'pospelova', 
+      'цебро': 'tsebro', 'янішина': 'yanishyna' 
+    };
     
-    if (urls.length > 0 && photoGrid) {
-      // Знаходимо батьківський блок, який містить текст "Тут з'являться..." і ховаємо його
-      const emptyState = photoGrid.parentElement.querySelector('div:first-child');
-      if (emptyState && !emptyState.hasAttribute('data-photo-grid')) {
-          emptyState.setAttribute('hidden', '');
+    const eventPhotos = [];
+    const finalistPhotos = [];
+    const profilePhotos = {};
+    Object.values(idMap).forEach(id => profilePhotos[id] = []);
+
+    photos.forEach(photo => {
+      let isFinalist = false;
+      for (const [lastName, id] of Object.entries(idMap)) {
+        // Якщо назва файлу містить прізвище або ID
+        if (photo.name.includes(id) || photo.name.includes(lastName.replace('’',''))) {
+          profilePhotos[id].push(photo);
+          finalistPhotos.push(photo);
+          isFinalist = true;
+          break;
+        }
       }
-      
-      photoGrid.removeAttribute('hidden');
-      photoGrid.innerHTML = ''; 
-      
-      urls.forEach((url, i) => {
-        photoGrid.innerHTML += `
-          <button class="pu-photo-tile" type="button" onclick="document.querySelector('[data-event-lightbox]').removeAttribute('hidden'); document.querySelector('[data-event-image]').src='${url}';">
-            <img src="${url}" alt="Фото ${i+1}">
-            <span>Фото ${i+1}</span>
-          </button>
-        `;
+      // Якщо прізвища в назві немає — це фото для загальної галереї
+      if (!isFinalist) eventPhotos.push(photo);
+    });
+
+    // 2. ЛОГІКА ГОЛОВНОЇ ГАЛЕРЕЇ (Вкладки)
+    const gallerySection = document.querySelector('[data-panel="photos"]');
+    if (gallerySection) {
+      const photoGrid = gallerySection.querySelector('[data-photo-grid]');
+      const emptyState = gallerySection.querySelector('.pu-empty-state') || gallerySection.querySelector('div:first-child');
+      const tabs = gallerySection.querySelectorAll('.pu-album-tabs .pu-tab');
+
+      const renderGrid = (photoArray) => {
+        if (!photoGrid) return;
+        photoGrid.innerHTML = '';
+        if (photoArray.length === 0) {
+           if (emptyState && !emptyState.hasAttribute('data-photo-grid')) emptyState.removeAttribute('hidden');
+           photoGrid.setAttribute('hidden', '');
+        } else {
+           if (emptyState && !emptyState.hasAttribute('data-photo-grid')) emptyState.setAttribute('hidden', '');
+           photoGrid.removeAttribute('hidden');
+           photoArray.forEach((p, i) => {
+             photoGrid.innerHTML += `
+               <button class="pu-photo-tile" type="button" onclick="document.querySelector('[data-event-lightbox]').removeAttribute('hidden'); document.querySelector('[data-event-image]').src='${p.url}';">
+                 <img src="${p.url}" alt="Фото ${i+1}">
+               </button>
+             `;
+           });
+        }
+      };
+
+      if (tabs.length >= 2) {
+        tabs[0].addEventListener('click', () => renderGrid(eventPhotos));
+        tabs[1].addEventListener('click', () => renderGrid(finalistPhotos));
+        // Рендер при першому завантаженні сторінки
+        if (tabs[0].getAttribute('aria-pressed') === 'true') renderGrid(eventPhotos);
+        else renderGrid(finalistPhotos);
+      } else {
+        renderGrid(photos); // Якщо вкладок немає
+      }
+    }
+
+    // 3. ЛОГІКА ПРОФІЛІВ ФІНАЛІСТІВ
+    // Відстежуємо клік на вкладку "Фото" всередині профілю
+    const profilePhotoTab = document.querySelector('[data-tab="photo"]');
+    if (profilePhotoTab) {
+      profilePhotoTab.addEventListener('click', () => {
+         const nameEl = document.querySelector('[data-person-name]').textContent.toLowerCase();
+         let currentId = null;
+         // Визначаємо, чий профіль зараз відкритий
+         for(let [lastName, id] of Object.entries(idMap)) {
+             if(nameEl.includes(lastName)) currentId = id;
+         }
+         
+         const profilePanel = document.querySelector('[data-tab-panel="photo"]');
+         if(profilePanel && currentId) {
+            const pPhotos = profilePhotos[currentId] || [];
+            if(pPhotos.length === 0) {
+               profilePanel.innerHTML = '<p class="pu-caption">Фотографій поки немає</p>';
+            } else {
+               // Створюємо сітку фотографій спеціально для профілю
+               profilePanel.innerHTML = '<div class="pu-photo-grid" style="height:auto;"></div>';
+               const grid = profilePanel.querySelector('.pu-photo-grid');
+               pPhotos.forEach((p) => {
+                 grid.innerHTML += `
+                   <button class="pu-photo-tile" type="button" onclick="document.querySelector('[data-event-lightbox]').removeAttribute('hidden'); document.querySelector('[data-event-image]').src='${p.url}';">
+                     <img src="${p.url}" alt="Фото">
+                   </button>
+                 `;
+               });
+            }
+         }
       });
     }
+
   } catch (e) {
-    console.error("Не вдалося завантажити фото з Google Диска", e);
+    console.error("Не вдалося завантажити фото", e);
   }
 });
+</script>
 </script>
   
 </body>
