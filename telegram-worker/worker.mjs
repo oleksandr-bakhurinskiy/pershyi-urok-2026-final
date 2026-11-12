@@ -3,6 +3,7 @@ const REACTIONS=['heart','clap','spark','rocket','flower','luck'];
 const parse=value=>{try{return JSON.parse(value||'{}');}catch{return {};}};
 const json=(status,code,extra={})=>Response.json({ok:status===200,code,...extra},{status});
 const validId=value=>typeof value==='string'&&/^[-a-zA-Z0-9_]{16,80}$/.test(value);
+
 function configuration(env){
   const testChat=Number(env.KIOSK_TEST_CHAT_ID),testMode=Number.isSafeInteger(testChat)&&testChat>0;
   const recipients=parse(env.KIOSK_RECIPIENTS_JSON),stickers=parse(env.KIOSK_STICKERS_JSON);
@@ -11,6 +12,7 @@ function configuration(env){
   const ready=id=>Number.isSafeInteger(recipient(id))&&recipient(id)>0;
   return {testMode,recipient,sticker,ready,status:{enabled:Boolean(env.TELEGRAM_BOT_TOKEN),testMode,recipientIds:IDS.filter(ready),stickerKeys:REACTIONS.filter(key=>typeof sticker(key)==='string'&&sticker(key).length>0)}};
 }
+
 export default {
   async fetch(request,env){
     const origin=request.headers.get('Origin');
@@ -20,6 +22,27 @@ export default {
     if(request.method==='OPTIONS')return wrap(new Response(null,{status:204}));
     const authorized=Boolean(env.KIOSK_DEVICE_KEY&&env.KIOSK_DEVICE_KEY.length>=24&&request.headers.get('X-Kiosk-Key')===env.KIOSK_DEVICE_KEY);
     const pathname=new URL(request.url).pathname;
+    
+    // Новий маршрут для Google Drive API
+    if(request.method==='GET'&&pathname==='/api/photos') {
+      const FOLDER_ID = '1t_BARt8tK5WGIruat6c7u06qPc77OLCO'; // Замініть на свій ID папки
+      if(!env.GOOGLE_API_KEY) return wrap(json(500, 'GOOGLE_API_KEY_MISSING'));
+      
+      const driveUrl = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name)&key=${env.GOOGLE_API_KEY}`;
+      try {
+        const driveRes = await fetch(driveUrl);
+        const driveData = await driveRes.json();
+        if (driveData.error) throw new Error(driveData.error.message);
+
+        const imageUrls = driveData.files.map(file => 
+          `https://drive.google.com/uc?export=view&id=${file.id}`
+        );
+        return wrap(new Response(JSON.stringify(imageUrls), { status: 200, headers: {'Content-Type': 'application/json'} }));
+      } catch (err) {
+        return wrap(json(500, 'DRIVE_ERROR', { details: err.message }));
+      }
+    }
+
     if(request.method==='GET'&&pathname==='/api/support/status')return wrap(Response.json({...configuration(env).status,deviceAuthorized:authorized,...(!authorized?{enabled:false,recipientIds:[],stickerKeys:[]}: {})}));
     if(request.method!=='POST'||pathname!=='/api/support')return wrap(json(404,'NOT_FOUND'));
     if(!authorized)return wrap(json(403,'DEVICE_DENIED'));
@@ -43,6 +66,8 @@ export class Support {
     const input=await request.json(),config=configuration(this.env),now=Date.now();
     if(!config.status.enabled)return json(503,'DEMO_MODE');
     if(!config.ready(input.recipientId))return json(409,'RECIPIENT_NOT_READY');
+    
+    // Тут sticker — це вже текстове повідомлення з ваших секретів
     const sticker=config.sticker(input.reactionKey);if(typeof sticker!=='string'||!sticker)return json(409,'STICKER_NOT_CONFIGURED');
     const sessionKey='session:'+input.sessionId+':'+input.recipientId,requestKey='request:'+input.requestId;
     const recipientKey='cooldown:'+config.recipient(input.recipientId),fingerprint=[input.sessionId,input.recipientId,input.reactionKey].join(':');
@@ -55,11 +80,17 @@ export class Support {
     });
     const responseFor=r=>json(r.status,r.code,r.status===200?{delivered:true}:{});
     if(!reservation.reserved)return responseFor(reservation.response);
-    // Reserve before contacting Telegram. Unknown delivery is never retried automatically.
+    
     if(!(await this.ctx.storage.getAlarm()))await this.ctx.storage.setAlarm(now+3600000);
     let outcome={status:502,code:'DELIVERY_UNKNOWN'},confirmedFailure=false;
     try{
-      const r=await fetch('https://api.telegram.org/bot'+this.env.TELEGRAM_BOT_TOKEN+'/sendSticker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:config.recipient(input.recipientId),sticker}),signal:AbortSignal.timeout(10000)});
+      // Змінено з sendSticker на sendMessage
+      const r=await fetch('https://api.telegram.org/bot'+this.env.TELEGRAM_BOT_TOKEN+'/sendMessage',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat_id:config.recipient(input.recipientId), text: sticker}),
+        signal:AbortSignal.timeout(10000)
+      });
       const data=await r.json();if(r.ok&&data.ok===true&&Number.isInteger(data.result?.message_id)&&data.result.message_id>0)outcome={status:200,code:'DELIVERED'};
       else if(data.ok===false){outcome={status:502,code:'DELIVERY_FAILED'};confirmedFailure=true;}
     }catch{}
