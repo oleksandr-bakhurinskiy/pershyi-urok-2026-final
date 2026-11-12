@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
      }
   };
 
-  // 2. ФУНКЦІЯ РЕНДЕРУ ФОТО В ПРОФІЛЯХ (Виправлено розтягування фото)
+  // 2. ФУНКЦІЯ РЕНДЕРУ ФОТО В ПРОФІЛЯХ
   const updateProfilePhotos = () => {
      const profilePanel = document.querySelector('[data-tab-panel="photo"]');
      const nameEl = document.querySelector('[data-person-name]');
@@ -930,7 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
             customGrid.id = 'pu-custom-profile-grid';
             customGrid.style.display = 'grid';
             customGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-            customGrid.style.alignContent = 'start'; // Забороняє рядкам розтягуватися на всю висоту
+            customGrid.style.alignContent = 'start';
             customGrid.style.gap = '20px';
             customGrid.style.height = '100%';
             customGrid.style.overflowY = 'auto';
@@ -943,7 +943,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
            customGrid.innerHTML = '';
            pPhotos.forEach((p, i) => {
-             // Додано aspect-ratio: 4/3 для збереження ідеальних пропорцій карток
              customGrid.innerHTML += `
                <button type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});" style="display:block; padding:0; background:transparent; border-radius:22px; overflow:hidden; border:none; cursor:pointer; aspect-ratio: 4/3;">
                  <img src="${p.url}" alt="Фото" style="width:100%; height:100%; object-fit:cover; display:block;">
@@ -954,7 +953,7 @@ document.addEventListener('DOMContentLoaded', () => {
      }
   };
 
-  // 3. АВТОМАТИЧНЕ ЗАВАНТАЖЕННЯ (Таймер)
+  // 3. АВТОМАТИЧНЕ ЗАВАНТАЖЕННЯ
   const fetchPhotos = async () => {
     try {
       const res = await fetch("https://pershyi-urok-support.obakhurinskyi.workers.dev/api/photos");
@@ -990,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // 4. ПРИВ'ЯЗКА КНОПОК ТА ПАНЕЛЕЙ
+  // 4. ПРИВ'ЯЗКА ПАНЕЛЕЙ
   window.openLightbox = function(url, arrayName, index) {
     const lightbox = document.querySelector('[data-event-lightbox]');
     const image = lightbox.querySelector('[data-event-image]');
@@ -1041,12 +1040,52 @@ document.addEventListener('DOMContentLoaded', () => {
       observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
   }
 
+  // 5. ЧЕРГУВАННЯ ФОТО НА ЗАСТАВЦІ
+  const attractImage = document.querySelector('[data-attract-image]');
+  const attractName = document.querySelector('[data-attract-name]');
+  const attractKind = document.querySelector('[data-attract-kind]');
+  const attractHeading = document.querySelector('.pu-attract-heading');
+
+  if (attractImage) {
+      let showEvent = false;
+      let isOurMutation = false;
+
+      // Спостерігаємо, коли стенд намагається змінити фото на заставці
+      const attractObserver = new MutationObserver(() => {
+          if (isOurMutation) return; // Уникаємо зациклення
+          if (!window.eventPhotosArray || window.eventPhotosArray.length === 0) return;
+
+          showEvent = !showEvent; // Чергуємо: фіналіст -> подія -> фіналіст
+          isOurMutation = true;
+
+          if (showEvent) {
+              // Беремо випадкове фото з Google Диска (Моменти конкурсу)
+              const randomIdx = Math.floor(Math.random() * window.eventPhotosArray.length);
+              attractImage.src = window.eventPhotosArray[randomIdx].url;
+              
+              // Робимо тексти повністю прозорими
+              if (attractName) attractName.style.opacity = '0';
+              if (attractKind) attractKind.style.opacity = '0';
+              if (attractHeading) attractHeading.style.opacity = '0';
+          } else {
+              // Повертаємо тексти для фотографій фіналістів
+              if (attractName) attractName.style.opacity = '1';
+              if (attractKind) attractKind.style.opacity = '1';
+              if (attractHeading) attractHeading.style.opacity = '1';
+          }
+
+          setTimeout(() => { isOurMutation = false; }, 50);
+      });
+
+      attractObserver.observe(attractImage, { attributes: true, attributeFilter: ['src'] });
+  }
+
   fetchPhotos();
   setInterval(fetchPhotos, 60000); 
 
 });
 
-// 5. НАВІГАЦІЯ В ЛАЙТБОКСІ
+// 6. НАВІГАЦІЯ В ЛАЙТБОКСІ
 document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.querySelector('[data-photo-step="-1"]');
     const nextBtn = document.querySelector('[data-photo-step="1"]');
