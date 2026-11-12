@@ -4,7 +4,8 @@ compatibility_date = "2026-11-11"
 
 [vars]
 # Only the origin, without repository path or trailing slash.
-ALLOWED_ORIGIN = "https://oleksandr-bakhurinskiy.github.io/"
+ALLOWED_ORIGIN = "https://oleksandr-bakhurinskiy.github.io"
+KIOSK_RECIPIENTS_JSON = '{"vodopian":{"chatId":1321230153,"optedIn":true}}'
 KIOSK_STICKERS_JSON = "{\"heart\":\"CAACAgIAAxkBAAFXkwxq9IKIOpAIEOasyYbX-4hf0n59NgACILoAApOAoEty-EXxqjH3WD0E\",\"clap\":\"CAACAgIAAxkBAAFXkxJq9IKuKeIGSBWNTAbrGv6s3oEt4AACHbUAAg4ToEu-AcEd7a--Zz0E\",\"spark\":\"CAACAgIAAxkBAAFXkwhq9IJbHnESqGDjFuH3QsuqjaTxiwACEq4AAnITqUtsZCAkFwa_vT0E\",\"rocket\":\"CAACAgIAAxkBAAFXkxhq9ILO2nep5Hr6nyvCqZ-JO2BsPwACoqoAAsktqEsGoMp3qwiLqz0E\",\"flower\":\"CAACAgIAAxkBAAFXkxxq9ILi5OiKNPgnhxnRzVV8ImTxkgACKrwAAglOoEv2EI7d6yzKKz0E\",\"luck\":\"CAACAgIAAxkBAAFXkyBq9IL0jjZTWU6e2PKZPhUTex9nQAAC8qgAAgZwoEtZ_tpPYv7FgT0E\"}"
 
 [[durable_objects.bindings]]
