@@ -449,7 +449,7 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
    root.querySelector('[data-person-region]').textContent=p.region;
    root.querySelector('[data-bio]').textContent=p.bio || 'Познайомтеся з Діаною через її конкурсні роботи: відеовізитку та мікропрактику можна переглянути у вкладці «Відео».';
    const caption=root.querySelector('[data-bio-caption]');caption.replaceChildren();
-   const source=document.createElement('a');source.href=p.url;source.target='_blank';source.rel='noopener noreferrer';source.textContent='Сторінка учасника';caption.append(document.createTextNode(p.bio?'За самопрезентацією на офіційному сайті. ':'Особисту самопрезентацію ще не опубліковано. '),source);
+   
    const full=root.querySelector('[data-full-photo]');full.src=p.image;full.alt='Портрет: '+nameOf(p);
    root.querySelectorAll('[data-tab]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.tab===tab)));
    root.querySelectorAll('[data-tab-panel]').forEach(el=>{el.hidden=el.dataset.tabPanel!==tab;});
