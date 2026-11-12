@@ -30,17 +30,19 @@ export default {
       
       const driveUrl = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name)&key=${env.GOOGLE_API_KEY}`;
       try {
-        const driveRes = await fetch(driveUrl);
-        const driveData = await driveRes.json();
-        if (driveData.error) throw new Error(driveData.error.message);
+    const driveRes = await fetch(driveUrl);
+    const driveData = await driveRes.json();
+    if (driveData.error) throw new Error(driveData.error.message);
 
-        const imageUrls = driveData.files.map(file => 
-  `https://lh3.googleusercontent.com/d/${file.id}`
-);
-        return wrap(new Response(JSON.stringify(imageUrls), { status: 200, headers: {'Content-Type': 'application/json'} }));
-      } catch (err) {
-        return wrap(json(500, 'DRIVE_ERROR', { details: err.message }));
-      }
+    // Тепер повертаємо і URL, і назву файлу (в нижньому регістрі для зручного пошуку)
+    const photos = driveData.files.map(file => ({
+      url: `https://lh3.googleusercontent.com/d/${file.id}`,
+      name: file.name.toLowerCase()
+    }));
+    return wrap(new Response(JSON.stringify(photos), { status: 200, headers: {'Content-Type': 'application/json'} }));
+  } catch (err) {
+    return wrap(json(500, 'DRIVE_ERROR', { details: err.message }));
+  }
     }
 
     if(request.method==='GET'&&pathname==='/api/support/status')return wrap(Response.json({...configuration(env).status,deviceAuthorized:authorized,...(!authorized?{enabled:false,recipientIds:[],stickerKeys:[]}: {})}));
