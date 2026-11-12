@@ -35,8 +35,8 @@ export default {
         if (driveData.error) throw new Error(driveData.error.message);
 
         const imageUrls = driveData.files.map(file => 
-          `https://drive.google.com/uc?export=view&id=${file.id}`
-        );
+  `https://lh3.googleusercontent.com/d/${file.id}`
+);
         return wrap(new Response(JSON.stringify(imageUrls), { status: 200, headers: {'Content-Type': 'application/json'} }));
       } catch (err) {
         return wrap(json(500, 'DRIVE_ERROR', { details: err.message }));
