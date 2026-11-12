@@ -743,14 +743,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       lightbox.removeAttribute('hidden');
     };
 
-    // 2. ЛОГІКА ГОЛОВНОЇ ГАЛЕРЕЇ (ОНОВЛЕНО: Додано автоматичне відновлення після заставки)
+    // 2. ЛОГІКА ГОЛОВНОЇ ГАЛЕРЕЇ
     const gallerySection = document.querySelector('[data-panel="photos"]');
     if (gallerySection) {
       window.eventPhotosArray = eventPhotos;
       window.finalistPhotosArray = finalistPhotos;
 
       const renderGrid = (photoArray, arrayName) => {
-        // Завжди шукаємо актуальні елементи в DOM, бо стенд може їх перезаписувати
         const photoGrid = document.querySelector('[data-panel="photos"] [data-photo-grid]');
         const emptyState = document.querySelector('[data-panel="photos"] .pu-empty-state') || document.querySelector('[data-panel="photos"] div:first-child');
         
@@ -782,28 +781,25 @@ document.addEventListener('DOMContentLoaded', async () => {
          }
       };
 
-      // Додаємо обробники для кліків по вкладках галереї
       const tabs = gallerySection.querySelectorAll('.pu-album-tabs .pu-tab');
       if (tabs.length >= 2) {
         tabs[0].addEventListener('click', () => renderGrid(eventPhotos, 'eventPhotosArray'));
         tabs[1].addEventListener('click', () => renderGrid(finalistPhotos, 'finalistPhotosArray'));
       }
 
-      // Первинний рендер
       updateMainGallery();
 
-      // Відстежуємо, коли панель галереї знову стає видимою (наприклад, після заставки)
       const galleryObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.attributeName === 'hidden' && !gallerySection.hasAttribute('hidden')) {
-            updateMainGallery(); // Відновлюємо фотографії
+            updateMainGallery();
           }
         });
       });
       galleryObserver.observe(gallerySection, { attributes: true });
     }
 
-    // 3. ЛОГІКА ПРОФІЛІВ ФІНАЛІСТІВ
+    // 3. БЕЗПЕЧНА ЛОГІКА ПРОФІЛІВ ФІНАЛІСТІВ (Виправлено конфлікт з кнопками)
     const updateProfilePhotos = () => {
        const profilePanel = document.querySelector('[data-tab-panel="photo"]');
        const nameEl = document.querySelector('[data-person-name]');
@@ -820,13 +816,28 @@ document.addEventListener('DOMContentLoaded', async () => {
           const pPhotos = profilePhotos[currentId] || [];
           window.currentProfileArray = pPhotos;
           
+          // ЗАМІСТЬ ВИДАЛЕННЯ: просто ховаємо оригінальний блок, щоб стенд не видавав помилку
+          const originalArea = profilePanel.querySelector('.pu-photo-area');
+          if (originalArea) {
+              originalArea.style.display = 'none';
+          }
+          
+          // Створюємо наш власний безпечний контейнер для фотографій, якщо його ще немає
+          let customGrid = profilePanel.querySelector('#pu-custom-profile-grid');
+          if (!customGrid) {
+              customGrid = document.createElement('div');
+              customGrid.id = 'pu-custom-profile-grid';
+              customGrid.className = 'pu-photo-grid';
+              customGrid.style.height = 'auto';
+              profilePanel.appendChild(customGrid);
+          }
+          
           if(pPhotos.length === 0) {
-             profilePanel.innerHTML = '<p class="pu-caption">Фотографій поки немає</p>';
+             customGrid.innerHTML = '<p class="pu-caption">Фотографій поки немає</p>';
           } else {
-             profilePanel.innerHTML = '<div class="pu-photo-grid" style="height:auto;"></div>';
-             const grid = profilePanel.querySelector('.pu-photo-grid');
+             customGrid.innerHTML = '';
              pPhotos.forEach((p, i) => {
-               grid.innerHTML += `
+               customGrid.innerHTML += `
                  <button class="pu-photo-tile pu-clean-tile" type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});">
                    <img src="${p.url}" alt="Фото">
                  </button>
@@ -836,11 +847,10 @@ document.addEventListener('DOMContentLoaded', async () => {
        }
     };
 
-    const profilePhotoTab = document.querySelector('[data-tab="photo"]');
-    if (profilePhotoTab) {
-      profilePhotoTab.addEventListener('click', updateProfilePhotos);
-    }
+    // Заповнюємо сітку відразу, а видимістю вкладок нехай керує сам стенд
+    updateProfilePhotos();
 
+    // Оновлюємо фото лише тоді, коли перемикаємося між фіналістами
     const nameEl = document.querySelector('[data-person-name]');
     if (nameEl) {
         const observer = new MutationObserver(updateProfilePhotos);
