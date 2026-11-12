@@ -861,7 +861,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'цебро': 'tsebro', 'янішина': 'yanishyna' 
   };
   
-  // Глобальні змінні для зберігання фотографій
   window.eventPhotosArray = [];
   window.finalistPhotosArray = [];
   window.profilePhotos = {};
@@ -900,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
      }
   };
 
-  // 2. ФУНКЦІЯ РЕНДЕРУ ФОТО В ПРОФІЛЯХ
+  // 2. ФУНКЦІЯ РЕНДЕРУ ФОТО В ПРОФІЛЯХ (Виправлено розтягування фото)
   const updateProfilePhotos = () => {
      const profilePanel = document.querySelector('[data-tab-panel="photo"]');
      const nameEl = document.querySelector('[data-person-name]');
@@ -931,9 +930,11 @@ document.addEventListener('DOMContentLoaded', () => {
             customGrid.id = 'pu-custom-profile-grid';
             customGrid.style.display = 'grid';
             customGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+            customGrid.style.alignContent = 'start'; // Забороняє рядкам розтягуватися на всю висоту
             customGrid.style.gap = '20px';
             customGrid.style.height = '100%';
             customGrid.style.overflowY = 'auto';
+            customGrid.style.paddingBottom = '20px';
             photoArea.appendChild(customGrid);
         }
         
@@ -942,9 +943,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
            customGrid.innerHTML = '';
            pPhotos.forEach((p, i) => {
+             // Додано aspect-ratio: 4/3 для збереження ідеальних пропорцій карток
              customGrid.innerHTML += `
-               <button type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});" style="display:block; padding:0; background:transparent; border-radius:22px; overflow:hidden; border:none; cursor:pointer;">
-                 <img src="${p.url}" alt="Фото" style="width:100%; height:100%; object-fit:cover; display:block; border-radius:22px;">
+               <button type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});" style="display:block; padding:0; background:transparent; border-radius:22px; overflow:hidden; border:none; cursor:pointer; aspect-ratio: 4/3;">
+                 <img src="${p.url}" alt="Фото" style="width:100%; height:100%; object-fit:cover; display:block;">
                </button>
              `;
            });
@@ -976,12 +978,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isFinalist) newEventPhotos.push(photo);
       });
 
-      // Зберігаємо нові фото
       window.eventPhotosArray = newEventPhotos;
       window.finalistPhotosArray = newFinalistPhotos;
       window.profilePhotos = newProfilePhotos;
 
-      // Одразу ж оновлюємо екрани, якщо користувач зараз дивиться на фото
       updateMainGallery();
       updateProfilePhotos();
       
@@ -1005,8 +1005,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     lightbox.removeAttribute('hidden');
   };
-
- 
 
   const gallerySection = document.querySelector('[data-panel="photos"]');
   if (gallerySection) {
@@ -1043,7 +1041,6 @@ document.addEventListener('DOMContentLoaded', () => {
       observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
   }
 
-  // ЗАПУСК: Одразу завантажуємо фото, а потім повторюємо кожні 60 секунд
   fetchPhotos();
   setInterval(fetchPhotos, 60000); 
 
@@ -1065,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const photo = window.currentLightboxArray[newIndex];
         const lightbox = document.querySelector('[data-event-lightbox]');
-        const image = lightbox.querySelector('[data-event-image]');
+        const image = document.querySelector('[data-event-image]');
         const countDisplay = lightbox.querySelector('[data-photo-count]');
         
         window.currentLightboxIndex = newIndex;
