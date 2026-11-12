@@ -681,6 +681,31 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
 })();
 
 
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Звертаємося до вашого воркера
+    const res = await fetch("https://pershyi-urok-support.obakhurinskyi.workers.dev/api/photos");
+    const urls = await res.json();
+    
+    const grid = document.querySelector('[data-photo-grid]');
+    if (grid && urls.length > 0) {
+      grid.innerHTML = ''; // Очищаємо порожній стан
+      
+      urls.forEach((url, i) => {
+        // Створюємо картку фото з інтеграцією у вбудований повноекранний перегляд (лайтбокс)
+        grid.innerHTML += `
+          <button class="pu-photo-tile" type="button" onclick="document.querySelector('[data-event-lightbox]').removeAttribute('hidden'); document.querySelector('[data-event-image]').src='${url}';">
+            <img src="${url}" alt="Фото ${i+1}">
+            <span>Фото ${i+1}</span>
+          </button>
+        `;
+      });
+    }
+  } catch (e) {
+    console.error("Не вдалося завантажити фото з Google Диска", e);
+  }
+});
+
 </script>
 </div>
 
