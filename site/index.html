@@ -298,6 +298,16 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
   object-fit: cover;
   display: block;
 }
+  /* Примусове розтягування YouTube-плеєра */
+#pu-gallery-preview .pu-player-frame [data-player-mount],
+#pu-gallery-preview .pu-player-frame iframe {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+}
 </style>
 <section class="pu-app" aria-label="Інтерактивна галерея конкурсу Перший урок">
   <header class="pu-header"><img class="pu-logo" data-logo alt="Перший урок — конкурс педагогічної майстерності"><div class="pu-season"><span></span>СЕЗОН 2026</div></header>
