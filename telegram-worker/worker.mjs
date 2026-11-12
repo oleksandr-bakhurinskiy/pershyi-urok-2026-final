@@ -84,11 +84,11 @@ export class Support {
     if(!(await this.ctx.storage.getAlarm()))await this.ctx.storage.setAlarm(now+3600000);
     let outcome={status:502,code:'DELIVERY_UNKNOWN'},confirmedFailure=false;
     try{
-      // Змінено з sendSticker на sendMessage
-      const r=await fetch('https://api.telegram.org/bot'+this.env.TELEGRAM_BOT_TOKEN+'/sendMessage',{
+      // Повертаємо sendSticker замість sendMessage
+      const r=await fetch('https://api.telegram.org/bot'+this.env.TELEGRAM_BOT_TOKEN+'/sendSticker',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({chat_id:config.recipient(input.recipientId), text: sticker}),
+        body:JSON.stringify({chat_id:config.recipient(input.recipientId), sticker: sticker}),
         signal:AbortSignal.timeout(10000)
       });
       const data=await r.json();if(r.ok&&data.ok===true&&Number.isInteger(data.result?.message_id)&&data.result.message_id>0)outcome={status:200,code:'DELIVERED'};
