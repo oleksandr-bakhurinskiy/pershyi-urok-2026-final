@@ -1040,44 +1040,63 @@ document.addEventListener('DOMContentLoaded', () => {
       observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
   }
 
-  // 5. ЧЕРГУВАННЯ ФОТО НА ЗАСТАВЦІ
+  // 5. ЧЕРГУВАННЯ ФОТО НА ЗАСТАВЦІ (Гарантований показ усіх фіналістів)
   const attractImage = document.querySelector('[data-attract-image]');
   const attractName = document.querySelector('[data-attract-name]');
   const attractKind = document.querySelector('[data-attract-kind]');
   const attractHeading = document.querySelector('.pu-attract-heading');
 
   if (attractImage) {
-      let showEvent = false;
       let isOurMutation = false;
+      let attractTimeout;
 
-      // Спостерігаємо, коли стенд намагається змінити фото на заставці
+      // Додаємо плавний перехід для зникнення/появи тексту
+      if(attractName) attractName.style.transition = 'opacity 0.4s';
+      if(attractKind) attractKind.style.transition = 'opacity 0.4s';
+      if(attractHeading) attractHeading.style.transition = 'opacity 0.4s';
+
       const attractObserver = new MutationObserver(() => {
-          if (isOurMutation) return; // Уникаємо зациклення
+          if (isOurMutation) return; 
+
+          // 1. Стенд щойно перемкнув слайд на нового фіналіста.
+          // Повертаємо видимість текстам і скасовуємо попередній таймер.
+          if (attractName) attractName.style.opacity = '1';
+          if (attractKind) attractKind.style.opacity = '1';
+          if (attractHeading) attractHeading.style.opacity = '1';
+          clearTimeout(attractTimeout);
+
+          // Якщо фотографій з події ще немає - просто виходимо
           if (!window.eventPhotosArray || window.eventPhotosArray.length === 0) return;
 
-          showEvent = !showEvent; // Чергуємо: фіналіст -> подія -> фіналіст
-          isOurMutation = true;
-
-          if (showEvent) {
-              // Беремо випадкове фото з Google Диска (Моменти конкурсу)
+          // 2. Запускаємо таймер. Через 4 секунди показу фіналіста
+          // ми підміняємо картинку на фото з події і ховаємо текст.
+          attractTimeout = setTimeout(() => {
+              isOurMutation = true;
               const randomIdx = Math.floor(Math.random() * window.eventPhotosArray.length);
               attractImage.src = window.eventPhotosArray[randomIdx].url;
               
-              // Робимо тексти повністю прозорими
               if (attractName) attractName.style.opacity = '0';
               if (attractKind) attractKind.style.opacity = '0';
               if (attractHeading) attractHeading.style.opacity = '0';
-          } else {
-              // Повертаємо тексти для фотографій фіналістів
-              if (attractName) attractName.style.opacity = '1';
-              if (attractKind) attractKind.style.opacity = '1';
-              if (attractHeading) attractHeading.style.opacity = '1';
-          }
 
-          setTimeout(() => { isOurMutation = false; }, 50);
+              setTimeout(() => { isOurMutation = false; }, 50);
+          }, 4000); // 4000 мілісекунд (4 сек). Якщо слайди міняються занадто швидко, можна зменшити до 3000.
       });
 
       attractObserver.observe(attractImage, { attributes: true, attributeFilter: ['src'] });
+      
+      // Зупиняємо таймер, якщо екран торкнулися і заставка зникла
+      const attractPanel = document.querySelector('[data-attract]');
+      if (attractPanel) {
+          const panelObserver = new MutationObserver((mutations) => {
+              mutations.forEach(mutation => {
+                  if (mutation.attributeName === 'hidden' && attractPanel.hasAttribute('hidden')) {
+                      clearTimeout(attractTimeout);
+                  }
+              });
+          });
+          panelObserver.observe(attractPanel, { attributes: true });
+      }
   }
 
   fetchPhotos();
