@@ -500,7 +500,7 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
   for(const [value,label] of [['event','Моменти конкурсу'],['portraits','Фіналісти']]){const b=document.createElement('button');b.type='button';b.className='pu-tab';b.dataset.album=value;b.textContent=label;b.addEventListener('click',()=>{album=value;renderAlbum();});tabs.append(b);}
   const liveStatus=document.createElement('span');liveStatus.className='pu-live-status';tabs.append(liveStatus);portraitGrid.before(tabs);
   const live=document.createElement('div');live.className='pu-live-container';
-  const empty=document.createElement('div');empty.className='pu-empty-photos';empty.innerHTML='<strong>Тут з’являться<br>моменти конкурсу3</strong><p>Нові кадри додаватимуться до фотострічки під час події.</p>';
+  const empty=document.createElement('div');empty.className='pu-empty-photos';empty.innerHTML='<strong>Тут з’являться<br>моменти конкурсу4</strong><p>Нові кадри додаватимуться до фотострічки під час події.</p>';
   const grid=document.createElement('div');grid.className='pu-live-grid';
   const pager=document.createElement('div');pager.className='pu-live-pager';
   const previous=document.createElement('button'),next=document.createElement('button'),pageLabel=document.createElement('span');
