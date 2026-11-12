@@ -25,7 +25,7 @@ export default {
     
     // Новий маршрут для Google Drive API
     if(request.method==='GET'&&pathname==='/api/photos') {
-      const FOLDER_ID = 'ВСТАВТЕ_ТУТ_ID_ПАПКИ'; // Замініть на свій ID папки
+      const FOLDER_ID = '1t_BARt8tK5WGIruat6c7u06qPc77OLCO'; // Замініть на свій ID папки
       if(!env.GOOGLE_API_KEY) return wrap(json(500, 'GOOGLE_API_KEY_MISSING'));
       
       const driveUrl = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name)&key=${env.GOOGLE_API_KEY}`;
