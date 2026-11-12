@@ -688,17 +688,27 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // Звертаємося до вашого воркера
     const res = await fetch("https://pershyi-urok-support.obakhurinskyi.workers.dev/api/photos");
     const urls = await res.json();
     
-    const grid = document.querySelector('[data-photo-grid]');
-    if (grid && urls.length > 0) {
-      grid.innerHTML = ''; // Очищаємо порожній стан
+    // Шукаємо правильний контейнер
+    const gallerySection = document.getElementById('gallery');
+    const emptyState = gallerySection.querySelector('.pu-empty-state');
+    const photoGrid = gallerySection.querySelector('.pu-photo-grid');
+    
+    if (urls.length > 0 && photoGrid) {
+      // Ховаємо повідомлення "Тут з'являться моменти конкурсу4"
+      if (emptyState) emptyState.setAttribute('hidden', '');
       
+      // Показуємо сітку з фото
+      photoGrid.removeAttribute('hidden');
+      
+      // Очищаємо попередні фото, якщо вони були
+      photoGrid.innerHTML = ''; 
+      
+      // Додаємо кожне фото в сітку
       urls.forEach((url, i) => {
-        // Створюємо картку фото з інтеграцією у вбудований повноекранний перегляд (лайтбокс)
-        grid.innerHTML += `
+        photoGrid.innerHTML += `
           <button class="pu-photo-tile" type="button" onclick="document.querySelector('[data-event-lightbox]').removeAttribute('hidden'); document.querySelector('[data-event-image]').src='${url}';">
             <img src="${url}" alt="Фото ${i+1}">
             <span>Фото ${i+1}</span>
