@@ -691,22 +691,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const res = await fetch("https://pershyi-urok-support.obakhurinskyi.workers.dev/api/photos");
     const urls = await res.json();
     
-    // Шукаємо правильний контейнер
-    const gallerySection = document.getElementById('gallery');
-    const emptyState = gallerySection.querySelector('.pu-empty-state');
-    const photoGrid = gallerySection.querySelector('.pu-photo-grid');
+    // Шукаємо сітку за атрибутом data-photo-grid, який ви точно не видаляли
+    const photoGrid = document.querySelector('[data-photo-grid]');
     
     if (urls.length > 0 && photoGrid) {
-      // Ховаємо повідомлення "Тут з'являться моменти конкурсу4"
-      if (emptyState) emptyState.setAttribute('hidden', '');
+      // Знаходимо батьківський блок, який містить текст "Тут з'являться..." і ховаємо його
+      const emptyState = photoGrid.parentElement.querySelector('div:first-child');
+      if (emptyState && !emptyState.hasAttribute('data-photo-grid')) {
+          emptyState.setAttribute('hidden', '');
+      }
       
-      // Показуємо сітку з фото
       photoGrid.removeAttribute('hidden');
-      
-      // Очищаємо попередні фото, якщо вони були
       photoGrid.innerHTML = ''; 
       
-      // Додаємо кожне фото в сітку
       urls.forEach((url, i) => {
         photoGrid.innerHTML += `
           <button class="pu-photo-tile" type="button" onclick="document.querySelector('[data-event-lightbox]').removeAttribute('hidden'); document.querySelector('[data-event-image]').src='${url}';">
@@ -721,5 +718,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 </script>
+  
 </body>
+  
 </html>
