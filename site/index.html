@@ -513,7 +513,7 @@ body { margin:0; padding:0; width:100%; min-height:100vh; min-height:100dvh; bac
   for(const [value,label] of [['event','Моменти конкурсу'],['portraits','Фіналісти']]){const b=document.createElement('button');b.type='button';b.className='pu-tab';b.dataset.album=value;b.textContent=label;b.addEventListener('click',()=>{album=value;renderAlbum();});tabs.append(b);}
   const liveStatus=document.createElement('span');liveStatus.className='pu-live-status';tabs.append(liveStatus);portraitGrid.before(tabs);
   const live=document.createElement('div');live.className='pu-live-container';
-  const empty=document.createElement('div');empty.className='pu-empty-photos';empty.innerHTML='<strong>Тут з’являться<br>моменти конкурсу7</strong><p>Нові кадри додаватимуться до фотострічки під час події.</p>';
+  const empty=document.createElement('div');empty.className='pu-empty-photos';empty.innerHTML='<strong>Тут з’являться<br>моменти конкурсу8</strong><p>Нові кадри додаватимуться до фотострічки під час події.</p>';
   const grid=document.createElement('div');grid.className='pu-live-grid';
   const pager=document.createElement('div');pager.className='pu-live-pager';
   const previous=document.createElement('button'),next=document.createElement('button'),pageLabel=document.createElement('span');
@@ -728,13 +728,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!isFinalist) eventPhotos.push(photo);
     });
 
-    // Допоміжна функція для відкриття лайтбокса з підтримкою навігації
     window.openLightbox = function(url, arrayName, index) {
       const lightbox = document.querySelector('[data-event-lightbox]');
       const image = lightbox.querySelector('[data-event-image]');
       const countDisplay = lightbox.querySelector('[data-photo-count]');
       
-      // Зберігаємо поточний масив та індекс у глобальній області видимості
       window.currentLightboxArray = window[arrayName] || [];
       window.currentLightboxIndex = index;
       
@@ -745,18 +743,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       lightbox.removeAttribute('hidden');
     };
 
-    // 2. ЛОГІКА ГОЛОВНОЇ ГАЛЕРЕЇ
+    // 2. ЛОГІКА ГОЛОВНОЇ ГАЛЕРЕЇ (ОНОВЛЕНО: Додано автоматичне відновлення після заставки)
     const gallerySection = document.querySelector('[data-panel="photos"]');
     if (gallerySection) {
-      const photoGrid = gallerySection.querySelector('[data-photo-grid]');
-      const emptyState = gallerySection.querySelector('.pu-empty-state') || gallerySection.querySelector('div:first-child');
-      const tabs = gallerySection.querySelectorAll('.pu-album-tabs .pu-tab');
-
-      // Експортуємо масиви для лайтбокса
       window.eventPhotosArray = eventPhotos;
       window.finalistPhotosArray = finalistPhotos;
 
       const renderGrid = (photoArray, arrayName) => {
+        // Завжди шукаємо актуальні елементи в DOM, бо стенд може їх перезаписувати
+        const photoGrid = document.querySelector('[data-panel="photos"] [data-photo-grid]');
+        const emptyState = document.querySelector('[data-panel="photos"] .pu-empty-state') || document.querySelector('[data-panel="photos"] div:first-child');
+        
         if (!photoGrid) return;
         photoGrid.innerHTML = '';
         if (photoArray.length === 0) {
@@ -766,7 +763,6 @@ document.addEventListener('DOMContentLoaded', async () => {
            if (emptyState && !emptyState.hasAttribute('data-photo-grid')) emptyState.setAttribute('hidden', '');
            photoGrid.removeAttribute('hidden');
            photoArray.forEach((p, i) => {
-             // Використовуємо новий стиль пустих плиток та викликаємо openLightbox
              photoGrid.innerHTML += `
                <button class="pu-photo-tile pu-clean-tile" type="button" onclick="openLightbox('${p.url}', '${arrayName}', ${i});">
                  <img src="${p.url}" alt="Фото ${i+1}">
@@ -776,66 +772,87 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       };
 
+      const updateMainGallery = () => {
+         const tabs = document.querySelectorAll('[data-panel="photos"] .pu-album-tabs .pu-tab');
+         if (tabs.length >= 2) {
+             if (tabs[0].getAttribute('aria-pressed') === 'true') renderGrid(eventPhotos, 'eventPhotosArray');
+             else renderGrid(finalistPhotos, 'finalistPhotosArray');
+         } else {
+             renderGrid(photos, 'eventPhotosArray'); 
+         }
+      };
+
+      // Додаємо обробники для кліків по вкладках галереї
+      const tabs = gallerySection.querySelectorAll('.pu-album-tabs .pu-tab');
       if (tabs.length >= 2) {
         tabs[0].addEventListener('click', () => renderGrid(eventPhotos, 'eventPhotosArray'));
         tabs[1].addEventListener('click', () => renderGrid(finalistPhotos, 'finalistPhotosArray'));
-        if (tabs[0].getAttribute('aria-pressed') === 'true') renderGrid(eventPhotos, 'eventPhotosArray');
-        else renderGrid(finalistPhotos, 'finalistPhotosArray');
-      } else {
-        renderGrid(photos, 'eventPhotosArray'); 
       }
+
+      // Первинний рендер
+      updateMainGallery();
+
+      // Відстежуємо, коли панель галереї знову стає видимою (наприклад, після заставки)
+      const galleryObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'hidden' && !gallerySection.hasAttribute('hidden')) {
+            updateMainGallery(); // Відновлюємо фотографії
+          }
+        });
+      });
+      galleryObserver.observe(gallerySection, { attributes: true });
     }
 
     // 3. ЛОГІКА ПРОФІЛІВ ФІНАЛІСТІВ
+    const updateProfilePhotos = () => {
+       const profilePanel = document.querySelector('[data-tab-panel="photo"]');
+       const nameEl = document.querySelector('[data-person-name]');
+       
+       if(!profilePanel || !nameEl) return;
+       
+       const nameText = nameEl.textContent.toLowerCase();
+       let currentId = null;
+       for(let [lastName, id] of Object.entries(idMap)) {
+           if(nameText.includes(lastName)) currentId = id;
+       }
+       
+       if(currentId) {
+          const pPhotos = profilePhotos[currentId] || [];
+          window.currentProfileArray = pPhotos;
+          
+          if(pPhotos.length === 0) {
+             profilePanel.innerHTML = '<p class="pu-caption">Фотографій поки немає</p>';
+          } else {
+             profilePanel.innerHTML = '<div class="pu-photo-grid" style="height:auto;"></div>';
+             const grid = profilePanel.querySelector('.pu-photo-grid');
+             pPhotos.forEach((p, i) => {
+               grid.innerHTML += `
+                 <button class="pu-photo-tile pu-clean-tile" type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});">
+                   <img src="${p.url}" alt="Фото">
+                 </button>
+               `;
+             });
+          }
+       }
+    };
+
     const profilePhotoTab = document.querySelector('[data-tab="photo"]');
     if (profilePhotoTab) {
-      profilePhotoTab.addEventListener('click', (e) => {
-         // Виправляємо проблему з неактивними вкладками:
-         // Знаходимо всі вкладки в поточному профілі і знімаємо активний стан
-         const allTabs = e.target.parentElement.querySelectorAll('.pu-tab');
-         allTabs.forEach(t => t.setAttribute('aria-pressed', 'false'));
-         e.target.setAttribute('aria-pressed', 'true');
-         
-         // Ховаємо всі панелі і показуємо тільки фото
-         const allPanels = document.querySelectorAll('[data-tab-panel]');
-         allPanels.forEach(p => p.setAttribute('hidden', ''));
-         
-         const nameEl = document.querySelector('[data-person-name]').textContent.toLowerCase();
-         let currentId = null;
-         for(let [lastName, id] of Object.entries(idMap)) {
-             if(nameEl.includes(lastName)) currentId = id;
-         }
-         
-         const profilePanel = document.querySelector('[data-tab-panel="photo"]');
-         if(profilePanel) {
-            profilePanel.removeAttribute('hidden');
-            const pPhotos = profilePhotos[currentId] || [];
-            
-            // Експортуємо масив профілю для лайтбокса
-            window.currentProfileArray = pPhotos;
-            
-            if(pPhotos.length === 0) {
-               profilePanel.innerHTML = '<p class="pu-caption">Фотографій поки немає</p>';
-            } else {
-               profilePanel.innerHTML = '<div class="pu-photo-grid" style="height:auto;"></div>';
-               const grid = profilePanel.querySelector('.pu-photo-grid');
-               pPhotos.forEach((p, i) => {
-                 grid.innerHTML += `
-                   <button class="pu-photo-tile pu-clean-tile" type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});">
-                     <img src="${p.url}" alt="Фото">
-                   </button>
-                 `;
-               });
-            }
-         }
-      });
+      profilePhotoTab.addEventListener('click', updateProfilePhotos);
     }
+
+    const nameEl = document.querySelector('[data-person-name]');
+    if (nameEl) {
+        const observer = new MutationObserver(updateProfilePhotos);
+        observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
+    }
+
   } catch (e) {
     console.error("Не вдалося завантажити фото", e);
   }
 });
 
-// 4. НАВІГАЦІЯ В ЛАЙТБОКСІ (Попереднє / Наступне)
+// 4. НАВІГАЦІЯ В ЛАЙТБОКСІ
 document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.querySelector('[data-photo-step="-1"]');
     const nextBtn = document.querySelector('[data-photo-step="1"]');
@@ -846,13 +863,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let newIndex = window.currentLightboxIndex + step;
         const maxIndex = window.currentLightboxArray.length - 1;
         
-        // Циклічна навігація (якщо дійшли до кінця - йдемо на початок)
         if(newIndex < 0) newIndex = maxIndex;
         if(newIndex > maxIndex) newIndex = 0;
         
-        // Відкриваємо нове фото
         const photo = window.currentLightboxArray[newIndex];
-        // Назва масиву зберігається неявно, просто передаємо поточний
         const lightbox = document.querySelector('[data-event-lightbox]');
         const image = lightbox.querySelector('[data-event-image]');
         const countDisplay = lightbox.querySelector('[data-photo-count]');
