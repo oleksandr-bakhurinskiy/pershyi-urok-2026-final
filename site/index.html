@@ -866,12 +866,21 @@ document.addEventListener('DOMContentLoaded', () => {
   window.profilePhotos = {};
   Object.values(idMap).forEach(id => window.profilePhotos[id] = []);
 
-  // 1. ФУНКЦІЯ РЕНДЕРУ ГОЛОВНОЇ ГАЛЕРЕЇ
+  // 1. ФУНКЦІЯ РЕНДЕРУ ГОЛОВНОЇ ГАЛЕРЕЇ (Переведено на Flexbox для гарантованого скролу)
   const renderGrid = (photoArray, arrayName) => {
     const photoGrid = document.querySelector('[data-panel="photos"] [data-photo-grid]');
     const emptyState = document.querySelector('[data-panel="photos"] .pu-empty-state') || document.querySelector('[data-panel="photos"] div:first-child');
     
     if (!photoGrid) return;
+    
+    // Гнучкий контейнер, який змусить з'явитися прокрутку
+    photoGrid.style.display = 'flex';
+    photoGrid.style.flexWrap = 'wrap';
+    photoGrid.style.gap = '20px';
+    photoGrid.style.alignContent = 'flex-start';
+    photoGrid.style.overflowY = 'auto';
+    photoGrid.style.paddingBottom = '40px';
+
     photoGrid.innerHTML = '';
     if (photoArray.length === 0) {
        if (emptyState && !emptyState.hasAttribute('data-photo-grid')) emptyState.removeAttribute('hidden');
@@ -880,8 +889,9 @@ document.addEventListener('DOMContentLoaded', () => {
        if (emptyState && !emptyState.hasAttribute('data-photo-grid')) emptyState.setAttribute('hidden', '');
        photoGrid.removeAttribute('hidden');
        photoArray.forEach((p, i) => {
+         // Забороняємо стискання (flex-shrink:0) та вказуємо точну ширину
          photoGrid.innerHTML += `
-           <button type="button" onclick="openLightbox('${p.url}', '${arrayName}', ${i});" style="display:block; padding:0; background:transparent; border-radius:22px; overflow:hidden; border:none; cursor:pointer;">
+           <button type="button" onclick="openLightbox('${p.url}', '${arrayName}', ${i});" style="display:block; width:calc(50% - 10px); aspect-ratio:4/3; flex-shrink:0; padding:0; background:transparent; border-radius:22px; overflow:hidden; border:none; cursor:pointer;">
              <img src="${p.url}" alt="Фото ${i+1}" style="width:100%; height:100%; object-fit:cover; display:block; border-radius:22px;">
            </button>
          `;
@@ -928,13 +938,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!customGrid) {
             customGrid = document.createElement('div');
             customGrid.id = 'pu-custom-profile-grid';
-            customGrid.style.display = 'grid';
-            customGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-            customGrid.style.alignContent = 'start';
+            customGrid.style.display = 'flex';
+            customGrid.style.flexWrap = 'wrap';
+            customGrid.style.alignContent = 'flex-start';
             customGrid.style.gap = '20px';
             customGrid.style.height = '100%';
             customGrid.style.overflowY = 'auto';
-            customGrid.style.paddingBottom = '20px';
+            customGrid.style.paddingBottom = '40px';
             photoArea.appendChild(customGrid);
         }
         
@@ -944,7 +954,7 @@ document.addEventListener('DOMContentLoaded', () => {
            customGrid.innerHTML = '';
            pPhotos.forEach((p, i) => {
              customGrid.innerHTML += `
-               <button type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});" style="display:block; padding:0; background:transparent; border-radius:22px; overflow:hidden; border:none; cursor:pointer; aspect-ratio: 4/3;">
+               <button type="button" onclick="openLightbox('${p.url}', 'currentProfileArray', ${i});" style="display:block; width:calc(50% - 10px); aspect-ratio:4/3; flex-shrink:0; padding:0; background:transparent; border-radius:22px; overflow:hidden; border:none; cursor:pointer;">
                  <img src="${p.url}" alt="Фото" style="width:100%; height:100%; object-fit:cover; display:block;">
                </button>
              `;
@@ -1040,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', () => {
       observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
   }
 
-  // 5. ЧЕРГУВАННЯ ФОТО НА ЗАСТАВЦІ (Гарантований показ усіх фіналістів)
+  // 5. ЧЕРГУВАННЯ ФОТО НА ЗАСТАВЦІ
   const attractImage = document.querySelector('[data-attract-image]');
   const attractName = document.querySelector('[data-attract-name]');
   const attractKind = document.querySelector('[data-attract-kind]');
@@ -1050,7 +1060,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let isOurMutation = false;
       let attractTimeout;
 
-      // Додаємо плавний перехід для зникнення/появи тексту
       if(attractName) attractName.style.transition = 'opacity 0.4s';
       if(attractKind) attractKind.style.transition = 'opacity 0.4s';
       if(attractHeading) attractHeading.style.transition = 'opacity 0.4s';
@@ -1058,18 +1067,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const attractObserver = new MutationObserver(() => {
           if (isOurMutation) return; 
 
-          // 1. Стенд щойно перемкнув слайд на нового фіналіста.
-          // Повертаємо видимість текстам і скасовуємо попередній таймер.
           if (attractName) attractName.style.opacity = '1';
           if (attractKind) attractKind.style.opacity = '1';
           if (attractHeading) attractHeading.style.opacity = '1';
           clearTimeout(attractTimeout);
 
-          // Якщо фотографій з події ще немає - просто виходимо
           if (!window.eventPhotosArray || window.eventPhotosArray.length === 0) return;
 
-          // 2. Запускаємо таймер. Через 4 секунди показу фіналіста
-          // ми підміняємо картинку на фото з події і ховаємо текст.
           attractTimeout = setTimeout(() => {
               isOurMutation = true;
               const randomIdx = Math.floor(Math.random() * window.eventPhotosArray.length);
@@ -1080,12 +1084,11 @@ document.addEventListener('DOMContentLoaded', () => {
               if (attractHeading) attractHeading.style.opacity = '0';
 
               setTimeout(() => { isOurMutation = false; }, 50);
-          }, 4000); // 4000 мілісекунд (4 сек). Якщо слайди міняються занадто швидко, можна зменшити до 3000.
+          }, 4000); 
       });
 
       attractObserver.observe(attractImage, { attributes: true, attributeFilter: ['src'] });
       
-      // Зупиняємо таймер, якщо екран торкнулися і заставка зникла
       const attractPanel = document.querySelector('[data-attract]');
       if (attractPanel) {
           const panelObserver = new MutationObserver((mutations) => {
